@@ -15,6 +15,7 @@
     that can be applied to each pipeline step.
 *   Added scripts and instructions to run on Spark via Beam to the Chicago Taxi
     examples
+*   Added support for `tf.Transform` analyzer cache optimization utilization.
 
 ## Bug fixes and other changes
 *   Declared 'cmle_training_args' on trainer and 'cmle_serving_args' on
