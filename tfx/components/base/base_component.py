@@ -37,28 +37,13 @@ from tfx.utils import channel
 
 
 class _PropertyDictWrapper(object):
-  """Helper class to wrap inputs/outputs from TFX components.
+  """Helper class to wrap outputs from TFX components."""
 
-  Currently, this class is read-only (setting properties is not implemented).
-  """
-
-  def __init__(self, data: Dict[Text, channel.Channel]):
-    self._data = data
-
-  def __getitem__(self, key):
-    return self._data[key]
-
-  def __getattr__(self, key):
-    try:
-      return self._data[key]
-    except KeyError:
-      raise AttributeError
-
-  def __repr__(self):
-    return repr(self._data)
+  def __init__(self, d: Dict[Text, channel.Channel]):
+    self.__dict__ = d
 
   def get_all(self) -> Dict[Text, channel.Channel]:
-    return self._data
+    return self.__dict__
 
 
 def _abstract_property() -> Any:
@@ -391,10 +376,9 @@ class BaseComponent(with_metaclass(abc.ABCMeta, object)):
           (self.__class__, self.__class__.SPEC_CLASS, spec))
 
   def __repr__(self):
-    return ('%s(spec: %s, executor_class: %s, driver_class: %s, name: %s, '
-            'inputs: %s, outputs: %s)') % (
-                self.__class__.__name__, self.spec, self.executor_class,
-                self.driver_class, self.name, self.inputs, self.outputs)
+    return '%s(spec: %s, executor_class: %s, driver_class: %s, name: %s)' % (
+        self.__class__.__name__, self.spec, self.executor_class,
+        self.driver_class, self.name)
 
   @property
   def component_name(self) -> Text:

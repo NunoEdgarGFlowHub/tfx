@@ -33,13 +33,9 @@ from tfx.utils.types import TfxArtifact
 
 # Maximum number of executions we look at for previous result.
 MAX_EXECUTIONS_FOR_CACHE = 100
-# Execution state constant. We should replace this with MLMD enum once that is
-# ready.
-EXECUTION_STATE_CACHED = 'cached'
-EXECUTION_STATE_COMPLETE = 'complete'
 
 
-def sqlite_metadata_connection_config(
+def filed_based_metadata_connection_config(
     metadata_db_uri: Text) -> metadata_store_pb2.ConnectionConfig:
   """Convenient function to create file based metadata connection config.
 
@@ -138,13 +134,6 @@ class Metadata(object):
   def get_all_artifacts(self) -> List[metadata_store_pb2.Artifact]:
     try:
       return self._store.get_artifacts()
-    except tf.errors.NotFoundError:
-      return []
-
-  def get_artifacts_by_uri(self,
-                           uri: Text) -> List[metadata_store_pb2.Artifact]:
-    try:
-      return self._store.get_artifacts_by_uri(uri)
     except tf.errors.NotFoundError:
       return []
 
@@ -277,7 +266,7 @@ class Metadata(object):
       execution_id: int,
       input_dict: Dict[Text, List[TfxArtifact]],
       output_dict: Dict[Text, List[TfxArtifact]],
-      state: Optional[Text] = EXECUTION_STATE_COMPLETE,
+      state: Optional[Text] = 'complete',
   ) -> Dict[Text, List[TfxArtifact]]:
     """Publish an execution with input and output artifacts info.
 
@@ -285,14 +274,13 @@ class Metadata(object):
       execution_id: id of execution to be published.
       input_dict: inputs artifacts used by the execution with id ready.
       output_dict: output artifacts produced by the execution without id.
-      state: optional state of the execution, default to be
-        EXECUTION_STATE_COMPLETE.
+      state: optional state of the execution, default to be 'complete'.
 
     Returns:
       Updated outputs with artifact ids.
 
     Raises:
-      RuntimeError: If any output artifact already has id set.
+      ValueError: If any output artifact already has id set.
     """
     [execution] = self._store.get_executions_by_id([execution_id])
     self._update_execution_state(execution, state)
@@ -317,23 +305,15 @@ class Metadata(object):
     if output_dict:
       for key, output_list in output_dict.items():
         for index, single_output in enumerate(output_list):
-          if state == EXECUTION_STATE_CACHED:
-            if not single_output.artifact.id:
-              raise RuntimeError(
-                  'output artifact id not available for cached output: %s' %
-                  single_output)
-          elif state == EXECUTION_STATE_COMPLETE:
-            if single_output.artifact.id:
-              raise RuntimeError(
-                  'output artifact {} already has an id'.format(single_output))
-            [published_artifact] = self.publish_artifacts([single_output])  # pylint: disable=unbalanced-tuple-unpacking
-            single_output.set_artifact(published_artifact)
-          else:
-            raise RuntimeError('Execution state not supported: %s' % state)
+          if single_output.artifact.id:
+            raise ValueError(
+                'output artifact {} already has an id'.format(single_output))
+          [published_artifact] = self.publish_artifacts([single_output])  # pylint: disable=unbalanced-tuple-unpacking
+          single_output.set_artifact(published_artifact)
           events.append(
               self._prepare_event(
                   execution_id=execution_id,
-                  artifact_id=single_output.artifact.id,
+                  artifact_id=published_artifact.id,
                   key=key,
                   index=index,
                   event_type=metadata_store_pb2.Event.OUTPUT))
@@ -444,7 +424,7 @@ class Metadata(object):
     candidate_execution_ids = []
     expected_previous_execution = self._prepare_execution(
         type_name,
-        EXECUTION_STATE_COMPLETE,
+        'complete',
         exec_properties,
         pipeline_info=pipeline_info,
         component_info=component_info)

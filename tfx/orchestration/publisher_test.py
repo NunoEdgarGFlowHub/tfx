@@ -19,7 +19,6 @@ from __future__ import print_function
 
 import copy
 import tensorflow as tf
-from tfx.orchestration import metadata
 from tfx.orchestration import publisher
 from tfx.utils import types
 
@@ -37,7 +36,7 @@ class PublisherTest(tf.test.TestCase):
     }
     self._execution_id = 100
 
-  def test_prepare_execution_complete(self):
+  def test_prepare_execution_completed(self):
     input_dict = copy.deepcopy(self._input_dict)
     output_dict = copy.deepcopy(self._output_dict)
 
@@ -48,7 +47,7 @@ class PublisherTest(tf.test.TestCase):
         execution_id=self._execution_id,
         input_dict=input_dict,
         output_dict=output_dict,
-        state=metadata.EXECUTION_STATE_COMPLETE)
+        state='completed')
 
   def test_prepare_execution_cached(self):
     input_dict = copy.deepcopy(self._input_dict)
@@ -61,7 +60,7 @@ class PublisherTest(tf.test.TestCase):
         execution_id=self._execution_id,
         input_dict=input_dict,
         output_dict=output_dict,
-        state=metadata.EXECUTION_STATE_CACHED)
+        state='skipped')
 
 
 if __name__ == '__main__':
